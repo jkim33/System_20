@@ -10,16 +10,12 @@
 
   returns the file descriptor for the upstream pipe.
   =========================*/
-int server_handshake(int *to_client) {
-  printf("SERVER: making fifo\n");
-  mkfifo("/tmp/fifo", 0644);
-
-  printf("SERVER: making upstream pipe\n");
-  int up = open("/tmp/fifo", O_RDONLY);
+int server_handshake(int up, int *to_client) {
+  remove("/tmp/fifo");
+  char input[BUFFER_SIZE];
   char* msg = malloc(HANDSHAKE_BUFFER_SIZE);
   read(up, msg, HANDSHAKE_BUFFER_SIZE);
   printf("SERVER: message recieved\n");
-  remove("/tmp/fifo");
 
   printf("SERVER: making downstream pipe\n");
   int down = open(msg, O_WRONLY);
@@ -30,11 +26,7 @@ int server_handshake(int *to_client) {
   if (strncmp(ACK, msg, HANDSHAKE_BUFFER_SIZE) == 0) {
     printf("SERVER: connection established\n");
   }
-  else {
-    printf("Connection not established\n");
-    return 1;
-  }
-
+ 
   free(msg);
   
   *to_client = down;
@@ -73,10 +65,7 @@ int client_handshake(int *to_server) {
   if (strncmp(priv, msg, HANDSHAKE_BUFFER_SIZE) == 0) {
     printf("CLIENT: message recieved. connection established\n");
   }
-  else {
-    printf("Connection not established\n");
-    return 1;
-  }
+  
   remove(priv);
 
   printf("CLIENT: sending connection message\n");

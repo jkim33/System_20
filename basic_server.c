@@ -24,12 +24,25 @@ int main() {
   int from_client;
 
   while(1) {
-    from_client = server_handshake( &to_client );
-    char input[BUFFER_SIZE];
-    while(read(from_client, input, BUFFER_SIZE)){
-      printf("The client said: %s\n", input);
-      latin(input);
-      write(to_client, input, BUFFER_SIZE);
+    printf("SERVER: making fifo\n");
+    mkfifo("/tmp/fifo", 0644);
+    printf("SERVER: making upstream pipe\n");
+    from_client = open("/tmp/fifo", O_RDONLY);
+    int id = fork();
+    if (!id) {
+      from_client = server_handshake(from_client, &to_client);
+      char input[BUFFER_SIZE];
+      while(read(from_client, input, BUFFER_SIZE)){
+	printf("S%d recieved: %s\n", getpid(), input);
+	latin(input);
+	write(to_client, input, BUFFER_SIZE);
+      }
+      exit(0);
+    }
+    else {
+      remove("/tmp/fifo");
+      close(from_client);
+      close(to_client);
     }
   }
 }
